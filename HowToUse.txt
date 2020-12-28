@@ -2,13 +2,16 @@
 How to use.
 switch to APP_DIR
 use
+python -m virtualenv venv
+
+venv\Scripts\activate
 
 pip install -r requirement.txt
 
 to install all requirements.
 
 start server 
-python python server_evo1.py
+python server_evo1.py
 
 load files using uploader client
 python uploader.py TEST_DIR\data\20201221-205304.csv
