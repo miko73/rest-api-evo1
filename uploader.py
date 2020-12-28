@@ -1,7 +1,13 @@
 import os
 import sys
-
+import logging
 import config
+log_file= f'{config.LOG_DIR}\\uploader.log'
+
+logging.basicConfig(filename=log_file, level=logging.DEBUG)
+log = logging.getLogger("uploader.py")
+
+
 from client import Client
 
 if __name__ == '__main__':
@@ -13,5 +19,5 @@ if __name__ == '__main__':
         TEST_DIR = os.path.join(config.APP_DIR, 'tests')
         file_path = os.path.join(TEST_DIR, 'data', 'simple.txt')
 
-    print('Uploading file:', file_path)
+    log.debug('Uploading file:', file_path)
     client.upload_file(file_path)

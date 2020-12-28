@@ -1,7 +1,10 @@
 import random
 import csv
 from datetime import datetime
+import logging
 import config
+
+log = logging.getLogger("random_generate.py")
 
 def get_random_date(year):
 
@@ -31,12 +34,12 @@ def get_random_line():
 
 
 def prepre_input(file_name, count):	
-	print (f"'prepare_report {file_name}'")
+	log.debug (f"'prepare_report {file_name}'")
 	with open(file_name , mode='w', newline='', encoding='UTF-8') as csv_stack:
 		csv_writer = csv.writer(csv_stack, delimiter=',', quotechar="", quoting=csv.QUOTE_NONE)
-		# print(f'header  {self.field_list.split(",")}')
+		# log.debug(f'header  {self.field_list.split(",")}')
 		row = "utc_timestamp,temelin_actual,temelin_installed,dukovany_actual,dukovany_installed, pocerady_actual,pocerady_installed".split(",")
-		print (row)
+		log.debug (row)
 		csv_writer.writerow(row)			
 		for x in range (count):
 			row=get_random_line().split(",")

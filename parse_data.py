@@ -2,7 +2,7 @@ import os
 import re
 
 # from bottle import run, route, request, BaseRequest, respons
-
+import logging
 import config
 import sqlite3
 from sqlite3 import Error
@@ -14,27 +14,27 @@ import json
 
 # Maximum size of memory buffer for request body in bytes.
 # BaseRequest.MEMFILE_MAX = MAX_UPLOAD_BYTE_LENGHT
+log = logging.getLogger("parse_data.py")
 
-
-def load_batch(file_name):
+def upload_batch(file_name):
 	# dbcon = create_connection(f"{DB_DIR}/energo.db")
 	now = datetime.today().isoformat()
 	act_batch = Batch(now, file_name )
-	act_batch.int_db_connector(f"{config.DB_DIR}/energo.db")
+	act_batch.int_db_connector()
 
 
 	if act_batch.batch_insert() == None:
-		print ("error in act_batch")
+		log.debug ("error in act_batch")
 		act_batch.connector.rollback_all()
 		del act_batch
-		return
+		return False
 	else:
-		print ( f'Batch num - {act_batch.db_id}')
-			# print (act_batch)
+		log.debug ( f'Batch num - {act_batch.db_id}')
+			# log.debug (act_batch)
 
 	act_batch.load_from_file()
 	act_batch.close_batch()
-	print (act_batch)
+	log.debug (act_batch)
 	del act_batch
 	return True 
 
@@ -42,16 +42,16 @@ def load_batch(file_name):
 def get_query(time_slot, plants_list):	
 	try:
 		repo_1 = Reporter(time_slot, plants_list)
-		print(f'repo_1.time_slot - {repo_1.time_slot}')
-		print(f'repo_1.field_list - {repo_1.field_list}')
+		log.debug(f'repo_1.time_slot - {repo_1.time_slot}')
+		log.debug(f'repo_1.field_list - {repo_1.field_list}')
 	except:
 		if repo_1 != None:
-			print(f'repo_1.time_slot - {repo_1.time_slot}')
-			print(f'repo_1.field_list - {repo_1.field_list}')
+			log.error(f'repo_1.time_slot - {repo_1.time_slot}')
+			log.error(f'repo_1.field_list - {repo_1.field_list}')
 		return	
-	repo_1.int_db_connector(f"{config.DB_DIR}/energo.db")
+	repo_1.int_db_connector()
 	file_name = repo_1.prepre_report()
-	print (f'file_name [{file_name}]')
+	log.debug(f'file_name [{file_name}]')
 	return file_name
 
 

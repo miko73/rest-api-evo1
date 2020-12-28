@@ -2,21 +2,27 @@ import os
 import re
 import sys
 import csv
-import logging
-
-
+#app config
 import config
-from bottle import Bottle, request, response, BaseRequest, route, post
+#log module
+import logging
+# server
+from bottle import Bottle, request, response, BaseRequest, route, post, static_file
+# app classes
 from models import DBConnector, Batch, Reporter
-from parse_data import load_batch, get_query
-from json import dumps
+# connecting functions
+from parse_data import upload_batch, get_query
+import requests
 
-
-BaseRequest.MEMFILE_MAX = config.MAX_UPLOAD_BYTE_LENGHT
+# BaseRequest.MEMFILE_MAX = config.MAX_UPLOAD_BYTE_LENGHT
 
 app = Bottle()
+log_file= f'{config.LOG_DIR}\\master.log'
+logging.basicConfig(filename=log_file, level=logging.DEBUG)
 
-
+log = logging.getLogger("my.module.name")
+log.info("info msg")
+# 
 #file_handler = logging.FileHandler(f"{config.LOG_DIR}/app.log")
 #app.logger.addHandler(file_handler)
 #app.logger.setLevel(logging.INFO)
@@ -26,7 +32,6 @@ post_template = """
 <html>
 <body>
 <form action="/upload_file" method="post" enctype="multipart/form-data">
-  Category:      <input type="text" name="category" />
   Select a file: <input type="file" name="upload" />
   <input type="submit" value="Start upload" />
 </form> 
@@ -45,19 +50,22 @@ function goBack() {
 """
 read the file from browser on client opened by upload_file_on_form_get()
 """
+
+"""
+when file selected in browser page, uploads file to server
+"""
 @app.route('/upload_file', method='POST')
 def upload_file_on_form_post():
-	category   = request.forms.get('category')
 	upload     = request.files.get('upload')
 	name, ext = os.path.splitext(upload.filename)
-	print (f'name {name}, ext {ext}')
+	log.debug (f'name {name}, ext {ext}')
 	file_path=f'{config.CSV_DIR}\\{name}{ext}'	
 	try:
 		upload.save(config.CSV_DIR) # appends upload.filename automatically
 	except IOError as e:		
 		return f"File exists {file_path}"
-
-	load_batch(file_path)
+	# parse incomming date and store to DB (interface between server nad class structure)
+	upload_batch(file_path)
 	return 'OK'
 
 """
@@ -69,7 +77,7 @@ def upload_file_on_form_get():
 
 
 """
-This function is server part of uploader client. 
+This function is server part of uploader client. (comand line client/server interface) 
 """
 @app.route('/store', method='POST')
 def upload():
@@ -79,78 +87,61 @@ def upload():
 	end = int(match.group('end'))
 	total_bytes = int(match.group('total_bytes'))
 
-	print ('in upload', request.body)
 
 	file_name = os.path.basename(request.headers.get('Filename'))
 	file_path = os.path.join(config.CSV_DIR, file_name)
-	print (f'file_name in STORE {file_name}' )
+	log.debug (f'file_name in STORE [{file_name}]' )
 	# append chunk to the file or create file if not exist
 	with open(file_path, 'rb+' if os.path.exists(file_path) else 'wb+') as f:
 		f.seek(start)
 		act_chunk = request.body.read(config.MAX_UPLOAD_BYTE_LENGHT)
 		f.write(act_chunk)
 		if len (act_chunk) == config.MAX_UPLOAD_BYTE_LENGHT:
-			print ("file to large")
+			log.debug ("file to large")
 
-		print("start={}, byte_len={}, pos={}".format(start, len(act_chunk), f.tell()))
-	# data are saved to file  
-	load_batch(file_path)
+		log.debug("start={}, byte_len={}, pos={}".format(start, len(act_chunk), f.tell()))
+
+	# data are saved to file
+
+	upload_batch(file_path)
 	response.status = 200
 	return response
 
+
+"""
+received the user request for date according with spefication
+
+"""
 @app.route('/display', method='GET')
 def dispaly_get():
 	output = ""
 	if len (request.params) == 2:
 		time_slot = request.params.get('time_slot')
 		plants_list = request.params.get('plant_list')
-		result_file_name = get_query(time_slot, plants_list)
-		reslut_text=f"Successuflly uploaded {result_file_name}"
+		result_file = get_query(time_slot, plants_list)			
+		os_file_name = f'{config.OUT_DIR}\\{result_file}'
+		reslut_text=f"Successuflly uploaded {os_file_name}"
 	else:
 		reslut_text = "Parameters error. \n Use parameter in format like http://localhost:8082/display?time_slot='2020-05-01 20:00:00 - 2020-05-01 21:00:00'&plant_list='temelin,dukovany,pocerady'"	
 		reslut_text += "<br>"
 		reslut_text += back_button_templ
 		return reslut_text
-
-	response.content_type = 'text/csv'
-	# read csv file
-
-	csv_file = open(result_file_name, "r")
-	allLines = csv_file.readlines()
-	csv_file.close()
-	print("File contents:", allLines)  #Prints the list of strings
-#	return dumps(allLines)
-	return allLines
-
-@app.route('/x', method='GET')
-def func_x():
-
-	result_text=""	
-	for item in request.forms:
-		result_text += "forms [{}]{}".format(item, request.forms.get(item))
-
-	for item in request.query:
-		result_text+="<br> query [{}]{}".format(item,request.query.get(item))
+	log.debug(reslut_text)
+	folder_name = f'{config.OUT_DIR}\\'
 	
-	for item in request.GET:
-		result_text+="<br> GET [{}]{}".format(item,request.GET.get(item))
+	if os.path.exists(os.path.join(folder_name, result_file)):
+		return static_file(os_file_name, root=folder_name)
 
-	for item in request.POST:
-		result_text+="<br> POST [{}]{}".format(item,request.POST.get(item))
-	
-	for item in request.params:
-		result_text+="<br> params [{}]{}".format(item,request.params.get(item))
-
-	return result_text
-
-
-
-
-
-# if __name__ == '__main__':
-    # run(app=app, host=config.HOST, port=config.PORT, debug=True)
 
 if __name__ == "__main__":
-	print("Starting")
-	app.run(host=config.HOST, port=config.PORT, debug=True)
-# run(host=config.HOST, port=config.PORT, debug=True)
+
+	# log.debug('Debug message, should only appear in the file.')
+	# log.info('Info message, should appear in file and stdout.')
+	# log.warning('Warning message, should appear in file and stdout.')
+	# log.error('Error message, should appear in file and stdout.')
+	port = int(config.PORT)
+	if (config.TEST_MODE == True):
+		log.warning("!!!!! Server Started in test mode !!!!!.")
+
+
+	app.run(host=config.HOST, port=port, debug=True)

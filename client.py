@@ -42,6 +42,10 @@ class Client:
 					if response.ok:
 						print('{}. chunk sent to server'.format(sent_chunk_count + 1))
 						sent_chunk_count += 1
+					else:
+						print(f'response.ok [{response.ok}]')
+						return False
+
 				except requests.exceptions.RequestException:
 					print('Error while sending chunk to server. Retrying in {} seconds'.format(retry_timeout))
 					time.sleep(retry_timeout)
@@ -53,5 +57,5 @@ class Client:
 
 				if sent_chunk_count >= chunk_count:
 					return True
-
+				print(f"sent_chunk_count >= chunk_count [{sent_chunk_count} >= {chunk_count}]")	
 			return False
