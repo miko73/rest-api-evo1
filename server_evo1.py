@@ -18,10 +18,10 @@ import requests
 
 app = Bottle()
 log_file= f'{config.LOG_DIR}\\master.log'
-logging.basicConfig(filename=log_file, level=logging.DEBUG)
+logging.basicConfig(filename=log_file, level=config.LOG_LEVEL)
 
-log = logging.getLogger("my.module.name")
-log.info("info msg")
+log = logging.getLogger("server_evo1")
+
 # 
 #file_handler = logging.FileHandler(f"{config.LOG_DIR}/app.log")
 #app.logger.addHandler(file_handler)
@@ -59,14 +59,20 @@ def upload_file_on_form_post():
 	upload     = request.files.get('upload')
 	name, ext = os.path.splitext(upload.filename)
 	log.debug (f'name {name}, ext {ext}')
-	file_path=f'{config.CSV_DIR}\\{name}{ext}'	
+	file_path = f'{config.CSV_DIR}\\{name}{ext}'	
+
+	if os.path.exists(file_path):
+		log.debug("removing file in upload_file_on_form_post")
+		os.remove(file_path)
+
 	try:
 		upload.save(config.CSV_DIR) # appends upload.filename automatically
 	except IOError as e:		
 		return f"File exists {file_path}"
 	# parse incomming date and store to DB (interface between server nad class structure)
-	upload_batch(file_path)
-	return 'OK'
+	result = upload_batch(file_path)
+	log.info (f"Batch stored {result}")
+	return result.replace('\n', '<br>') 
 
 """
 retrun to client page with file upload functionality
@@ -83,6 +89,7 @@ This function is server part of uploader client. (comand line client/server inte
 def upload():
 	range_header = request.headers.get('Range')
 	match = re.search('(?P<start>\d+)-(?P<end>\d+)/(?P<total_bytes>\d+)', range_header)
+	
 	start = int(match.group('start'))
 	end = int(match.group('end'))
 	total_bytes = int(match.group('total_bytes'))
@@ -91,6 +98,9 @@ def upload():
 	file_name = os.path.basename(request.headers.get('Filename'))
 	file_path = os.path.join(config.CSV_DIR, file_name)
 	log.debug (f'file_name in STORE [{file_name}]' )
+	if os.path.exists(file_path) and start==0:
+		log.debug("removing file in upload")
+		os.remove(file_path)
 	# append chunk to the file or create file if not exist
 	with open(file_path, 'rb+' if os.path.exists(file_path) else 'wb+') as f:
 		f.seek(start)
@@ -102,8 +112,12 @@ def upload():
 		log.debug("start={}, byte_len={}, pos={}".format(start, len(act_chunk), f.tell()))
 
 	# data are saved to file
+	if total_bytes == end:	
+		# log.info (f"batch file successfully stored {file_path}")
+		result = upload_batch(file_path)
+		log.info (f"Batch stored {result}")
+		return result.replace('\n', '<br>')
 
-	upload_batch(file_path)
 	response.status = 200
 	return response
 

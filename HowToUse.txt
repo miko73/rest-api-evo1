@@ -1,0 +1,33 @@
+'''
+How to use.
+switch to APP_DIR
+use
+
+pip install -r requirement.txt
+
+to install all requirements.
+
+start server 
+python python server_evo1.py
+
+load files using uploader client
+python uploader.py TEST_DIR\data\20201221-205304.csv
+
+files can be also uploaded from browser
+http://localhost:8082/upload_file
+
+display function takes parameter as follows.
+http://localhost:8082/display?time_slot='2020-05-01 20:00:00 - 2020-05-01 21:00:00'&plant_list='pocerady,temelin,dukovany'
+data are returned as text file
+
+
+utiliy generates batch containig 100 randomized records to TEST_DIR\data
+python random_generate_csvs.py 100
+
+TEST_MODE=False change to TEST_MODE=True, allows to run 
+python test_rest-api-evo1.py
+Tests are stared under DB_DIR/energo_test.db
+
+configuratino incuding host and server port name is done in config.py
+
+'''

@@ -1,11 +1,11 @@
 import os
 import sys
 import logging
-
 HOST = '127.0.0.1'
 PORT = 8082
 # switch between test and production DB, for testing purposes, it's necesary to bounce server
-TEST_MODE=True 
+TEST_MODE=False
+# app root dir
 APP_DIR = os.getcwd()
 # incomming files with batches,  through the REST-API are stored in  CSV_DIR
 CSV_DIR = os.path.join(APP_DIR, 'csvs')

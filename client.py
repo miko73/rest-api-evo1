@@ -3,8 +3,12 @@ import math
 import time
 import config
 import requests
+import logging
 
 
+log = logging.getLogger("client.py")
+
+# class for the data transfer used by command line utility uploader.py
 class Client:
 	def __init__(self, api_url, max_byte_length):
 		self.api_url = api_url

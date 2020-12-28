@@ -3,7 +3,10 @@ import csv
 from datetime import datetime
 import logging
 import config
+import sys
 
+log_file= f'{config.LOG_DIR}\\random_generate_csvs.log'
+logging.basicConfig(filename=log_file, level=config.LOG_LEVEL)
 log = logging.getLogger("random_generate.py")
 
 def get_random_date(year):
@@ -14,7 +17,6 @@ def get_random_date(year):
 	# if the value happens to be in the leap year range, try again
 	except ValueError:
 		get_random_date(year)
-
 
 def get_random_line():
 	year = random.randrange(2018, 2021) 
@@ -49,7 +51,19 @@ def prepre_input(file_name, count):
 
 file_name = f'{config.APP_DIR}\\tests\\data\\'
 file_name += datetime.now().strftime("%Y%m%d-%H%M%S") + '.csv'
-prepre_input(file_name, 40)
+#nuber records in batch, file name is generated 
+
+if __name__ == '__main__':
+
+    try:
+        rows_count = int(sys.argv[1])
+    except IndexError:
+        TEST_DIR = os.path.join(config.APP_DIR, 'tests')
+        file_path = os.path.join(TEST_DIR, 'data', 'simple.txt')
+    log.info(f'file_name [{file_name}], rows_count = [{rows_count}]')
+    prepre_input(file_name, rows_count)
+
+
 
 
 
